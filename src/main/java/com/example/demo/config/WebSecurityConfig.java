@@ -8,6 +8,7 @@ import org.springframework.security.access.expression.method.MethodSecurityExpre
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.User;
@@ -51,11 +52,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	}
 
 	protected void configure(HttpSecurity http) throws Exception {
-		http.csrf().disable().authorizeRequests().antMatchers("/resources/**", "/signup", "/about").permitAll()
-				.antMatchers("/admin/**").hasRole("DBA").antMatchers("/db/**")
+		http.csrf().disable().authorizeRequests().antMatchers("/resources/static/assets/**", "/signup", "/about")
+				.permitAll().antMatchers("/admin/**").hasRole("DBA").antMatchers("/db/**")
 				.access("hasRole('ADMIN') and hasRole('DBA')").anyRequest().authenticated().and().formLogin()
 				.loginPage("/login").defaultSuccessUrl("/home").failureUrl("/login?e=error").permitAll().and().logout()
 				.logoutUrl("/logout").logoutSuccessUrl("/login").invalidateHttpSession(true)
 				.deleteCookies("JSESSIONID");
+	}
+
+	@Override
+	public void configure(WebSecurity web) throws Exception {
+		web.ignoring().antMatchers("/resources/static/assets/**");
 	}
 }
