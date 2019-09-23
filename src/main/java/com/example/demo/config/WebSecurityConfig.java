@@ -1,6 +1,9 @@
 package com.example.demo.config;
 
+import javax.sql.DataSource;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
@@ -11,19 +14,29 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
+
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	@Autowired
 	private UserDetailsService service;
 	@Autowired
 	private BCryptPasswordEncoder encoder;
+	@Autowired
+	private PersistentTokenRepository persistentTokenRepository;
+	@Autowired
+	DataSource dataSource;
 
 	@Bean
 	public UserDetailsService userDeatilService() {
@@ -40,6 +53,32 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		return new BCryptPasswordEncoder();
 	}
 
+	@Bean
+	public PersistentTokenRepository persistentTokenRepository() {
+		JdbcTokenRepositoryImpl db = new JdbcTokenRepositoryImpl();
+		db.setDataSource(dataSource);
+		return db;
+	}
+
+	@Bean
+	public SavedRequestAwareAuthenticationSuccessHandler savedRequestAwareAuthenticationSuccessHandler() {
+		SavedRequestAwareAuthenticationSuccessHandler auth = new SavedRequestAwareAuthenticationSuccessHandler();
+		auth.setTargetUrlParameter("targetUrl");
+		return auth;
+	}
+
+	@Bean
+	public HttpSessionEventPublisher httpSessionEventPublisher() {
+		return new HttpSessionEventPublisher();
+	}
+
+//	@Bean
+//	public SpringSessionRememberMeServices rememberMeServices() {
+//		SpringSessionRememberMeServices rememberMeServices =
+//				new SpringSessionRememberMeServices();
+//		rememberMeServices.setAlwaysRemember(true);
+//		return rememberMeServices;
+//	}
 	@Autowired
 	public void configure(AuthenticationManagerBuilder auth) throws Exception {
 		auth.userDetailsService(service).passwordEncoder(encoder);
@@ -52,16 +91,23 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	}
 
 	protected void configure(HttpSecurity http) throws Exception {
-		http.csrf().disable().authorizeRequests().antMatchers("/resources/static/assets/**", "/signup", "/about")
-				.permitAll().antMatchers("/admin/**").hasRole("DBA").antMatchers("/db/**")
-				.access("hasRole('ADMIN') and hasRole('DBA')").anyRequest().authenticated().and().formLogin()
-				.loginPage("/login").defaultSuccessUrl("/home").failureUrl("/login?e=error").permitAll().and().logout()
-				.logoutUrl("/logout").logoutSuccessUrl("/login").invalidateHttpSession(true)
-				.deleteCookies("JSESSIONID");
+		http.csrf().disable().authorizeRequests().requestMatchers(PathRequest.toStaticResources().atCommonLocations())
+				.permitAll().antMatchers("/resources/**", "/home", "/login", "/logout","/add-user","/users/**").permitAll()
+				.antMatchers("/admin/**").hasRole("DBA").antMatchers("/db/**")
+				.access("hasRole('ADMIN') or hasRole('DBA')").anyRequest().authenticated().and().formLogin()
+				.loginPage("/login").defaultSuccessUrl("/home").permitAll().and().logout()
+				.logoutUrl("/logout").logoutSuccessUrl("/login?logout").invalidateHttpSession(true)
+				.deleteCookies("JSESSIONID").and().rememberMe().key("uniqueAndSecret")
+				.rememberMeParameter("remember-new").tokenValiditySeconds(86400)
+				.tokenRepository(persistentTokenRepository).userDetailsService(service);
+		http.sessionManagement().sessionFixation().newSession()
+	    .invalidSessionUrl("/login?timeout").maximumSessions(1).maxSessionsPreventsLogin(false).expiredUrl("/login?max_session");
+		super.configure(http);
 	}
 
 	@Override
 	public void configure(WebSecurity web) throws Exception {
-		web.ignoring().antMatchers("/resources/static/assets/**");
+		web.ignoring().antMatchers("/resources/**", "/static/**", "/assets/**", "/css/**", "/js/**", "/swf/**",
+				"/images/**", "/fonts/**", "/font-awesome/**");
 	}
 }

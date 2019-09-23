@@ -12,14 +12,15 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
+
 @Service
 @Transactional
 public class LoginService implements UserDetailsService {
 	@Autowired
 	UserRepository userRepository;
+
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 		User user = userRepository.findByEmail(username);
@@ -27,9 +28,7 @@ public class LoginService implements UserDetailsService {
 			throw new UsernameNotFoundException("not user");
 		}
 		List<SimpleGrantedAuthority> authorities = new ArrayList<SimpleGrantedAuthority>();
-		for (Role role : user.getRoles()) {
-			authorities.add(new SimpleGrantedAuthority(role.getRoleName()));
-		}
+		authorities.add(new SimpleGrantedAuthority(user.getRoles().getRoleName()));
 		UserDetails details = new org.springframework.security.core.userdetails.User(username, user.getPassword(),
 				authorities);
 		return details;

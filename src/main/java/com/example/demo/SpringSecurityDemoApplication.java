@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @SpringBootApplication
-public class SpringSecurityDemoApplication{
+public class SpringSecurityDemoApplication {
 
 	public static void main(String[] args) {
 		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -14,5 +14,5 @@ public class SpringSecurityDemoApplication{
 		SpringApplication.run(SpringSecurityDemoApplication.class, args);
 		System.out.println(pass);
 	}
-	
+
 }

@@ -1,6 +1,7 @@
 package com.example.demo.entity;
 
 import java.io.Serializable;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -8,10 +9,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 
 @Entity
 public class Role implements Serializable {
@@ -22,10 +21,10 @@ public class Role implements Serializable {
 	private Integer id;
 	@Column(name = "role_name")
 	private String roleName;
-	@ManyToOne
-	@JoinColumn(name = "user_id")
-	@JsonIgnoreProperties("roles")
-	private User user;
+	@ManyToMany
+	@JoinTable(name = "role_menu", joinColumns = { @JoinColumn(name = "role_id") }, inverseJoinColumns = {
+			@JoinColumn(name = "menu_id") })
+	private List<Menu> menus;
 
 	public String getRoleName() {
 		return roleName;
@@ -33,14 +32,6 @@ public class Role implements Serializable {
 
 	public void setRoleName(String roleName) {
 		this.roleName = roleName;
-	}
-
-	public User getUser() {
-		return user;
-	}
-
-	public void setUser(User user) {
-		this.user = user;
 	}
 
 	public Role(String roleName) {
@@ -60,11 +51,11 @@ public class Role implements Serializable {
 		super();
 	}
 
-	public Role(Integer id, String roleName, User user) {
+	public Role(Integer id, String roleName) {
 		super();
 		this.id = id;
 		this.roleName = roleName;
-		this.user = user;
+
 	}
 
 }
